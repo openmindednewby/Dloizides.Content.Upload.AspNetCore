@@ -15,6 +15,12 @@ public sealed class ContentUploadOptions
   /// <summary>Claim that carries the caller's tenant id.</summary>
   public const string DefaultTenantClaimType = "tenantId";
 
+  /// <summary>Placeholder in <see cref="PublicDownloadPath"/> replaced by the stored item's id.</summary>
+  public const string ContentIdPlaceholder = "{contentId}";
+
+  /// <summary>ContentService's anonymous download route for public items.</summary>
+  public const string DefaultPublicDownloadPath = "api/v1/content/" + ContentIdPlaceholder + "/public-download";
+
   /// <summary>Route the endpoint is mounted on, e.g. <c>/admin/uploads/image</c>.</summary>
   public string Route { get; set; } = string.Empty;
 
@@ -33,6 +39,26 @@ public sealed class ContentUploadOptions
   /// <summary>Claim type the tenant id is read from. A caller without it gets 403.</summary>
   public string TenantClaimType { get; set; } = DefaultTenantClaimType;
 
+  /// <summary>
+  /// Browser-reachable base URL of ContentService, e.g. <c>https://content-api.dloizides.com</c>.
+  /// When set, the returned URL is built from it and <see cref="PublicDownloadPath"/> instead of
+  /// ContentService's own <c>url</c> (which can be a cluster-internal storage address). Must be https.
+  /// When unset, ContentService's <c>url</c> is returned unchanged.
+  /// </summary>
+  public Uri? PublicBaseUrl { get; set; }
+
+  /// <summary>Download path relative to <see cref="PublicBaseUrl"/>; must contain <see cref="ContentIdPlaceholder"/>.</summary>
+  public string PublicDownloadPath { get; set; } = DefaultPublicDownloadPath;
+
+  internal Uri? BuildPublicUrl(string contentId)
+  {
+    if (PublicBaseUrl is null)
+      return null;
+    var baseText = PublicBaseUrl.ToString().TrimEnd('/');
+    var path = PublicDownloadPath.TrimStart('/').Replace(ContentIdPlaceholder, Uri.EscapeDataString(contentId), StringComparison.Ordinal);
+    return new Uri($"{baseText}/{path}");
+  }
+
   internal void Validate()
   {
     if (string.IsNullOrWhiteSpace(Route))
@@ -45,5 +71,11 @@ public sealed class ContentUploadOptions
       throw new InvalidOperationException("ContentUploadOptions.ContentServiceBaseUrl must be an absolute URI.");
     if (string.IsNullOrWhiteSpace(UploadPath) || string.IsNullOrWhiteSpace(TenantClaimType))
       throw new InvalidOperationException("ContentUploadOptions.UploadPath and TenantClaimType must not be empty.");
+    if (PublicBaseUrl is null)
+      return;
+    if (!PublicBaseUrl.IsAbsoluteUri || PublicBaseUrl.Scheme != Uri.UriSchemeHttps)
+      throw new InvalidOperationException("ContentUploadOptions.PublicBaseUrl must be an absolute https URI.");
+    if (string.IsNullOrWhiteSpace(PublicDownloadPath) || !PublicDownloadPath.Contains(ContentIdPlaceholder, StringComparison.Ordinal))
+      throw new InvalidOperationException($"ContentUploadOptions.PublicDownloadPath must contain {ContentIdPlaceholder}.");
   }
 }

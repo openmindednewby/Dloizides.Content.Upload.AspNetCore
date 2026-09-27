@@ -36,13 +36,27 @@ internal sealed class ContentServiceUploadClient(
     }
 
     var body = await response.Content.ReadFromJsonAsync<UpstreamBody>(ct);
-    if (body is null || string.IsNullOrWhiteSpace(body.Url))
+    return body is null ? null : ToResponse(body);
+  }
+
+  private ContentUploadResponse? ToResponse(UpstreamBody body)
+  {
+    var settings = options.Value;
+    if (settings.PublicBaseUrl is null)
     {
+      if (!string.IsNullOrWhiteSpace(body.Url))
+        return new ContentUploadResponse(body.ContentId ?? string.Empty, body.Url);
       logger.LogWarning("ContentService upload succeeded but returned no URL");
       return null;
     }
 
-    return new ContentUploadResponse(body.ContentId ?? string.Empty, body.Url);
+    if (string.IsNullOrWhiteSpace(body.ContentId))
+    {
+      logger.LogWarning("ContentService upload succeeded but returned no content id");
+      return null;
+    }
+
+    return new ContentUploadResponse(body.ContentId, settings.BuildPublicUrl(body.ContentId)!.ToString());
   }
 
   private sealed record UpstreamBody(string? ContentId, string? Url);

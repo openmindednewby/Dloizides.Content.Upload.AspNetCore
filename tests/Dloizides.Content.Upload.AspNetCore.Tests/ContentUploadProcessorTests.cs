@@ -121,6 +121,50 @@ public class ContentUploadProcessorTests
     Assert.Equal(UploadFailure.UpstreamFailed, outcome.Failure);
   }
 
+  [Fact]
+  public async Task ProcessAsync_WhenPublicBaseUrlSet_ReturnsPublicDownloadUrlInsteadOfUpstreamUrl()
+  {
+    _options.PublicBaseUrl = new Uri("https://content-api.example.com/");
+
+    var outcome = await CreateSut().ProcessAsync(Principal(UploaderRole, TenantId), Image(PngBytes, "image/png"), Bearer, default);
+
+    Assert.True(outcome.IsSuccess);
+    Assert.Equal("https://content-api.example.com/api/v1/content/c-1/public-download", outcome.Value!.Url);
+  }
+
+  [Fact]
+  public async Task ProcessAsync_WhenPublicBaseUrlSetWithCustomPath_UsesCustomPath()
+  {
+    _options.PublicBaseUrl = new Uri("https://cdn.example.com");
+    _options.PublicDownloadPath = "/files/{contentId}";
+
+    var outcome = await CreateSut().ProcessAsync(Principal(UploaderRole, TenantId), Image(PngBytes, "image/png"), Bearer, default);
+
+    Assert.Equal("https://cdn.example.com/files/c-1", outcome.Value!.Url);
+  }
+
+  [Fact]
+  public async Task ProcessAsync_WhenPublicBaseUrlSetAndUpstreamOmitsUrl_StillReturnsPublicUrl()
+  {
+    _options.PublicBaseUrl = new Uri("https://content-api.example.com");
+    _handler.ResponseJson = "{\"contentId\":\"c-1\",\"status\":\"Ready\"}";
+
+    var outcome = await CreateSut().ProcessAsync(Principal(UploaderRole, TenantId), Image(PngBytes, "image/png"), Bearer, default);
+
+    Assert.Equal("https://content-api.example.com/api/v1/content/c-1/public-download", outcome.Value!.Url);
+  }
+
+  [Fact]
+  public async Task ProcessAsync_WhenPublicBaseUrlSetAndUpstreamOmitsContentId_ReturnsUpstreamFailed()
+  {
+    _options.PublicBaseUrl = new Uri("https://content-api.example.com");
+    _handler.ResponseJson = "{\"status\":\"Ready\",\"url\":\"http://seaweedfs-s3:8333/x.png\"}";
+
+    var outcome = await CreateSut().ProcessAsync(Principal(UploaderRole, TenantId), Image(PngBytes, "image/png"), Bearer, default);
+
+    Assert.Equal(UploadFailure.UpstreamFailed, outcome.Failure);
+  }
+
   private ContentUploadProcessor CreateSut()
   {
     var options = Options.Create(_options);

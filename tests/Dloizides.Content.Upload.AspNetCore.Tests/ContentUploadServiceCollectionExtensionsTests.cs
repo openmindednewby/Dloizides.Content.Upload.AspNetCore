@@ -32,6 +32,35 @@ public class ContentUploadServiceCollectionExtensionsTests
   }
 
   [Fact]
+  public void AddContentUpload_WhenPublicBaseUrlIsHttp_Throws()
+  {
+    var services = new ServiceCollection();
+
+    Assert.Throws<InvalidOperationException>(() => services.AddContentUpload(o =>
+    {
+      o.Route = "/uploads/image";
+      o.AllowedRoles = ["Organizer"];
+      o.ContentServiceBaseUrl = BaseUrl;
+      o.PublicBaseUrl = new Uri("http://content-api.example.com");
+    }));
+  }
+
+  [Fact]
+  public void AddContentUpload_WhenPublicDownloadPathLacksPlaceholder_Throws()
+  {
+    var services = new ServiceCollection();
+
+    Assert.Throws<InvalidOperationException>(() => services.AddContentUpload(o =>
+    {
+      o.Route = "/uploads/image";
+      o.AllowedRoles = ["Organizer"];
+      o.ContentServiceBaseUrl = BaseUrl;
+      o.PublicBaseUrl = new Uri("https://content-api.example.com");
+      o.PublicDownloadPath = "api/v1/content/public-download";
+    }));
+  }
+
+  [Fact]
   public void AddContentUpload_WhenValid_ResolvesProcessor()
   {
     var services = new ServiceCollection().AddLogging();

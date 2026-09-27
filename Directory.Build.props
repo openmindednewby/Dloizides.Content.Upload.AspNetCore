@@ -20,9 +20,9 @@
     <Description>Role-gated FastEndpoints image-upload endpoint that proxies to ContentService. The host sets the route, the allowed roles, the size cap and the ContentService base URL. Accepts PNG, JPEG, GIF and WebP only, verified by magic bytes rather than the declared Content-Type; requires a tenant claim; forwards the caller's bearer token so ContentService stores the blob under the caller's tenant; returns the public URL.</Description>
 
     <!-- Versioning -->
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
 
     <!-- NuGet settings -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
