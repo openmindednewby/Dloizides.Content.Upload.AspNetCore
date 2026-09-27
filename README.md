@@ -32,8 +32,14 @@ builder.Services.AddContentUpload(o =>
     o.AllowedRoles = ["Organizer", "TenantOwner"];
     o.ContentServiceBaseUrl = new Uri(builder.Configuration["Services:ContentApi"]!);
     // optional: o.MaxBytes, o.TenantClaimType ("tenantId"), o.UploadPath ("api/v1/content/upload")
+    // optional (1.1.0): o.PublicBaseUrl = new Uri("https://content-api.dloizides.com");
 });
 ```
+
+ContentService's own `url` can be a cluster-internal storage address (e.g.
+`http://seaweedfs-s3:8333/...`) that a browser cannot load. Set `PublicBaseUrl` (https only) and the
+endpoint returns `{PublicBaseUrl}/{PublicDownloadPath}` instead, where `PublicDownloadPath`
+defaults to `api/v1/content/{contentId}/public-download`. Unset, the upstream `url` is returned as-is.
 
 `AddContentUpload` validates the options at startup and throws `InvalidOperationException` when
 `Route`, `AllowedRoles` or `ContentServiceBaseUrl` is missing.
